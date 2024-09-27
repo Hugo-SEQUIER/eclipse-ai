@@ -1,0 +1,133 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Prevents the body from scrolling */
+}
+
+.chat-container {
+    background-color: #F9F6EE;
+    color: #444444;
+    width: 100%;
+    height: 100vh; /* Fixes the height to 100% of the viewport height */
+    display: flex;
+    flex-direction: column;
+    font-family: Arial, sans-serif;
+}
+
+.chat-header {
+    background-color: #444444;
+    color: #FFFFFF;
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.chat-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.chat-history {
+    width: 200px;
+    background-color: #E0E0E0;
+    padding: 10px;
+    overflow-y: auto;
+    border-right: 1px solid #CCCCCC;
+    display: flex;
+    flex-direction: column;
+}
+
+.new-conversation-btn {
+    background-color: #444444;
+    color: #FFFFFF;
+    border: none;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.new-conversation-btn:hover {
+    background-color: #555555;
+}
+
+.chat-history-item {
+    padding: 10px;
+    margin-bottom: 5px;
+    background-color: #FFFFFF;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-history-item:hover {
+    background-color: #D1E7DD;
+}
+
+.chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto; /* Enables vertical scrolling */
+}
+
+.message {
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    max-width: 80%;
+    word-wrap: break-word;
+}
+
+.message.user {
+    background-color: #E0E0E0;
+    align-self: flex-end;
+    margin-left: auto;
+}
+
+.message.assistant {
+    background-color: #D1E7DD;
+    align-self: flex-start;
+}
+
+.chat-input {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #CCCCCC;
+    align-items: center;
+}
+
+.chat-input input[type="text"] {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #CCCCCC;
+    border-radius: 5px;
+    font-size: 16px;
+    margin-right: 10px;
+}
+
+.chat-input button[type="submit"] {
+    background-color: #444444;
+    color: #FFFFFF;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.chat-input button[type="submit"]:disabled {
+    background-color: #888888;
+    cursor: not-allowed;
+}

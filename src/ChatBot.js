@@ -37,7 +37,7 @@ const ChatBot = () => {
         ...prevConversations,
         [conversationId]: {
           id: conversationId,
-          title: 'New Conversation', // Temporary title until AI generates it
+          title: 'New Conversation',
           messages: [],
         },
       }));
@@ -67,7 +67,32 @@ const ChatBot = () => {
           // Generate title only for new conversations
           if (isNewConversation) {
             const titlePrompt = `Generate a concise title for the following conversation:\n\nUser: ${input}\nAssistant: ${response}`;
-            getConversationTitle(titlePrompt).then(generatedTitle => {
+            getConversationTitle(titlePrompt).then(async (generatedTitle) => {
+              const metadata = {
+                id: conversationId,
+                title: generatedTitle || 'New Conversation',
+                messages: updatedConversation.messages,
+              };
+
+              try {
+                const uploadResponse = await fetch('http://localhost:3001/upload', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ data: JSON.stringify(metadata) }),
+                });
+
+                if (uploadResponse.ok) {
+                  const { url } = await uploadResponse.json();
+                  console.log('Metadata stored at:', url);
+                } else {
+                  console.error('Failed to store metadata');
+                }
+              } catch (error) {
+                console.error('Error storing metadata:', error);
+              }
+
               setConversations(prevConvs => ({
                 ...prevConvs,
                 [conversationId]: {
@@ -77,7 +102,7 @@ const ChatBot = () => {
               }));
 
               setChatHistory(prevHistory => [
-                ...prevHistory.filter(item => item.id !== conversationId), // Remove any duplicate
+                ...prevHistory.filter(item => item.id !== conversationId),
                 { id: conversationId, title: generatedTitle || 'New Conversation' },
               ]);
             });

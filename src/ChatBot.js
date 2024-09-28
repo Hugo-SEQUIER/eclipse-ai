@@ -1,53 +1,123 @@
-import React, { useState } from 'react';
-import { getResponse } from './aiChat/Chat.js'
+import React, { useState, useEffect } from 'react';
+import { getResponse, getConversationTitle } from './aiChat/Chat.js'
 import './ChatBot.css';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 const ChatBot = () => {
-  const [messages, setMessages] = useState([]);
+  const [conversations, setConversations] = useState({});
+  const [activeConversationId, setActiveConversationId] = useState(null);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [chatHistory, setChatHistory] = useState([]);
-  const [currentConversationTitle, setCurrentConversationTitle] = useState('');
+  const wallet = useWallet();
+  const [publicKeyString, setPublicKeyString] = useState('');
+
+  useEffect(() => {
+    if (wallet.publicKey) {
+      setPublicKeyString(wallet.publicKey.toString());
+    }
+  }, [wallet.publicKey]);
+
+  console.log("Public Key:", publicKeyString);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    const userMessage = { role: 'user', content: input };
-    setMessages((prevMessages) => [...prevMessages, userMessage]);
-    
-    // If this is the first message, use it as the conversation title
-    if (messages.length === 0) {
-      setCurrentConversationTitle(input.slice(0, 30));
-    }
-    
-    setInput('');
     setIsLoading(true);
+
+    let conversationId = activeConversationId;
+    let isNewConversation = false;
+
+    // If no active conversation, create a new one
+    if (!conversationId) {
+      conversationId = generateUniqueId();
+      isNewConversation = true;
+      setActiveConversationId(conversationId);
+      setConversations((prevConversations) => ({
+        ...prevConversations,
+        [conversationId]: {
+          id: conversationId,
+          title: 'New Conversation', // Temporary title until AI generates it
+          messages: [],
+        },
+      }));
+    }
+
+    const userMessage = { role: 'user', content: input };
+    setConversations((prevConversations) => ({
+      ...prevConversations,
+      [conversationId]: {
+        ...prevConversations[conversationId],
+        messages: [...(prevConversations[conversationId]?.messages || []), userMessage],
+      },
+    }));
+
+    setInput('');
 
     try {
       const response = await getResponse(input);
       if (response !== undefined) {
         const botMessage = { role: 'assistant', content: response };
-        setMessages((prevMessages) => [...prevMessages, botMessage]);
-        
-        // Add to chat history only if it's the first message
-        if (messages.length === 0) {
-          setChatHistory((prevHistory) => [...prevHistory, { id: Date.now(), title: currentConversationTitle }]);
-        }
+        setConversations((prevConversations) => {
+          const updatedConversation = {
+            ...prevConversations[conversationId],
+            messages: [...(prevConversations[conversationId]?.messages || []), botMessage],
+          };
+
+          // Generate title only for new conversations
+          if (isNewConversation) {
+            const titlePrompt = `Generate a concise title for the following conversation:\n\nUser: ${input}\nAssistant: ${response}`;
+            getConversationTitle(titlePrompt).then(generatedTitle => {
+              setConversations(prevConvs => ({
+                ...prevConvs,
+                [conversationId]: {
+                  ...updatedConversation,
+                  title: generatedTitle || 'New Conversation',
+                },
+              }));
+
+              setChatHistory(prevHistory => [
+                ...prevHistory.filter(item => item.id !== conversationId), // Remove any duplicate
+                { id: conversationId, title: generatedTitle || 'New Conversation' },
+              ]);
+            });
+          }
+
+          return {
+            ...prevConversations,
+            [conversationId]: updatedConversation,
+          };
+        });
       }
     } catch (error) {
       console.error('Error:', error);
       const errorMessage = { role: 'assistant', content: 'Sorry, there was an error processing your request.' };
-      setMessages((prevMessages) => [...prevMessages, errorMessage]);
+      setConversations((prevConversations) => ({
+        ...prevConversations,
+        [conversationId]: {
+          ...prevConversations[conversationId],
+          messages: [...(prevConversations[conversationId]?.messages || []), errorMessage],
+        },
+      }));
     } finally {
       setIsLoading(false);
     }
   };
 
   const startNewConversation = () => {
-    setMessages([]);
-    setCurrentConversationTitle('');
+    setActiveConversationId(null);
+    // Optionally, you can clear the input or keep it as is
   };
+
+  const selectConversation = (id) => {
+    setActiveConversationId(id);
+  };
+
+  const generateUniqueId = () => {
+    return `conv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  const [chatHistory, setChatHistory] = useState([]);
 
   return (
     <div className="chat-container">
@@ -56,14 +126,18 @@ const ChatBot = () => {
         <div className="chat-history">
           <button onClick={startNewConversation} className="new-conversation-btn">New Conversation</button>
           {chatHistory.map((item) => (
-            <div key={item.id} className="chat-history-item">
+            <div
+              key={item.id}
+              className={`chat-history-item ${item.id === activeConversationId ? 'active' : ''}`}
+              onClick={() => selectConversation(item.id)}
+            >
               {item.title}
             </div>
           ))}
         </div>
         <div className="chat-main">
           <div className="chat-messages">
-            {messages.map((message, index) => (
+            {activeConversationId && conversations[activeConversationId]?.messages.map((message, index) => (
               <div key={index} className={`message ${message.role}`}>
                 {message.content}
               </div>

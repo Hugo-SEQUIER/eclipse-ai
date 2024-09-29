@@ -74,10 +74,6 @@ Eclipse AI is an advanced chatbot application leveraging the Meta-Llama-3-1-8B-I
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-
 ## Additional Information
 
 For more detailed information, visit our [official website](https://trophe.net/).

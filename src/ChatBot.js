@@ -4,7 +4,7 @@ import './ChatBot.css';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { GraphQLClient, gql } from 'graphql-request';
 import CryptoJS from 'crypto-js'; // Import crypto-js for encryption/decryption
-
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 // Add these new functions for text embellishment
 const formatDays = (text) => {
   return text.replace(/\*\*Day \d+:.*?\*\*/g, match => `\n\n## ${match}\n`);
@@ -53,8 +53,6 @@ const ChatBot = () => {
   const wallet = useWallet();
   const [publicKeyString, setPublicKeyString] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
-  const [newConversationTitle, setNewConversationTitle] = useState(''); // New state for conversation title
-  const [isTitleModalOpen, setIsTitleModalOpen] = useState(false); // State to handle title input modal
 
   // Define your secret key for encryption/decryption
   const SECRET_KEY = process.env.REACT_APP_SECRET_KEY;
@@ -206,10 +204,21 @@ const ChatBot = () => {
     setIsLoading(true);
 
     let conversationId = activeConversationId;
+    let conversationTitle = `Conversation ${generateUniqueId()}`;
+
     if (!conversationId) {
+      // Start a new conversation
       conversationId = generateUniqueId();
       setActiveConversationId(conversationId);
-      setIsTitleModalOpen(true); // Open modal to input title for new conversation
+
+      try {
+        // Generate conversation title using the first user input
+        conversationTitle = await getConversationTitle(input);
+      } catch (error) {
+        console.error('Error generating conversation title:', error);
+        // Fallback to default title if title generation fails
+        conversationTitle = `Conversation ${conversationId}`;
+      }
     }
 
     const messageId = generateUniqueId();
@@ -226,7 +235,7 @@ const ChatBot = () => {
       idConversation: conversationId,
       idMessage: messageId,
       address: publicKeyString,
-      title: newConversationTitle || `Conversation ${conversationId}` // Include title in metadata
+      title: conversationTitle, // Use generated title
     };
 
     console.log('User Metadata:', userMetadata);
@@ -238,7 +247,7 @@ const ChatBot = () => {
       [conversationId]: {
         ...prevConversations[conversationId],
         messages: [...(prevConversations[conversationId]?.messages || []), userMessage].sort((a, b) => new Date(a.date) - new Date(b.date)),
-        title: newConversationTitle || `Conversation ${conversationId}`, // Set the title
+        title: conversationTitle, // Set the generated title
         date: new Date(userMessage.date).toISOString(), // Update conversation date
       },
     }));
@@ -246,13 +255,12 @@ const ChatBot = () => {
     setChatHistory((prevHistory) => {
       const exists = prevHistory.find(item => item.id === conversationId);
       if (!exists) {
-        return [...prevHistory, { id: conversationId, title: newConversationTitle || 'Untitled Conversation', date: userMessage.date }];
+        return [...prevHistory, { id: conversationId, title: conversationTitle || 'Untitled Conversation', date: userMessage.date }];
       }
       return prevHistory;
     });
 
     setInput('');
-    setNewConversationTitle(''); // Reset title input
 
     try {
       // Upload user message metadata
@@ -272,7 +280,7 @@ const ChatBot = () => {
           idConversation: conversationId,
           idMessage: botMessageId,
           address: publicKeyString,
-          title: newConversationTitle || `Conversation ${conversationId}` // Include title in metadata
+          title: conversationTitle, // Use generated title
         };
 
         console.log('AI Metadata:', botMetadata);
@@ -328,7 +336,7 @@ const ChatBot = () => {
   const startNewConversation = () => {
     setActiveConversationId(null);
     setInput('');
-    setIsTitleModalOpen(true); // Open modal to input title
+    // Removed modal opening as title is now auto-generated
   };
 
   const selectConversation = (id) => {
@@ -353,7 +361,6 @@ const ChatBot = () => {
         }),
       });
 
-
       if (uploadResponse.ok) {
         const { url } = await uploadResponse.json();
         console.log('Metadata stored at:', url);
@@ -366,38 +373,44 @@ const ChatBot = () => {
     }
   };
 
-  const handleTitleSubmit = (e) => {
-    e.preventDefault();
-    setIsTitleModalOpen(false);
-  };
-
   return (
     <div className="chat-container">
-      <div className="chat-header">AI Chat</div>
+      <div className="chat-header">Meta-Llama-3-1-8B-Instruct-FP8 - Chatbot</div>
       <div className="chat-body">
         <div className="chat-history">
           <button onClick={startNewConversation} className="new-conversation-btn">New Conversation</button>
-          {chatHistory.map((item) => (
-            <div
-              key={item.id}
-              className={`chat-history-item ${item.id === activeConversationId ? 'active' : ''}`}
-              onClick={() => selectConversation(item.id)}
-            >
-              <div className="conversation-title">{item.title}</div>
-              <div className="conversation-date">{new Date(item.date).toLocaleString()}</div>
+          <div className="conversation-date-border"></div>
+          <div className="conversation-history">
+            {chatHistory.map((item) => (
+              <div
+                key={item.id}
+                className={`chat-history-item ${item.id === activeConversationId ? 'active' : ''}`}
+                onClick={() => selectConversation(item.id)}
+              >
+                <div className="conversation-title">{item.title}</div>
+              </div>
+            ))}
+            {chatHistory.length === 0 && (
+              <div className="no-conversations">
+                No conversations found. Start a new conversation!
+              </div>
+            )}
+          </div>
+
+          {/* Powered By Section */}
+          <div className="powered-by">
+            <div>
+              <span>Powered By</span>
+              <img src="/akash.png" alt="Akash Logo" className="powered-logo" />
+              <img src="/irys.svg" alt="Irys Logo" className="powered-logo" />
             </div>
-          ))}
-          {chatHistory.length === 0 && (
-            <div className="no-conversations">
-              No conversations found. Start a new conversation!
-            </div>
-          )}
+            <WalletMultiButton />
+          </div>
         </div>
         <div className="chat-main">
           <div className="chat-messages">
             {activeConversationId && conversations[activeConversationId]?.messages.map((message, index) => (
               <div key={index} className={`message ${message.role}`}>
-                <div className="message-date">{new Date(message.date).toLocaleString()}</div>
                 <div 
                   className="message-content"
                   dangerouslySetInnerHTML={{ __html: message.content }}
@@ -420,27 +433,8 @@ const ChatBot = () => {
         </div>
       </div>
 
-      {/* Modal for entering conversation title */}
-      {isTitleModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <form onSubmit={handleTitleSubmit}>
-              <label htmlFor="conversation-title">Enter Conversation Title:</label>
-              <input
-                id="conversation-title"
-                type="text"
-                value={newConversationTitle}
-                onChange={(e) => setNewConversationTitle(e.target.value)}
-                required
-              />
-              <button type="submit">Save</button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
-
 
 export default ChatBot;

@@ -1,0 +1,32 @@
+{
+    "address": "B1fKCaqtdN5SMKet292QD88t2jFThuk6FGVVNrNBKbt4",
+    "metadata": {
+      "name": "eclipse_ai_contract",
+      "version": "0.1.0",
+      "spec": "0.1.0",
+      "description": "Created with Anchor"
+    },
+    "instructions": [
+      {
+        "name": "sign_access",
+        "discriminator": [
+          30,
+          45,
+          103,
+          233,
+          121,
+          162,
+          148,
+          72
+        ],
+        "accounts": [
+          {
+            "name": "user",
+            "writable": true,
+            "signer": true
+          }
+        ],
+        "args": []
+      }
+    ]
+  }

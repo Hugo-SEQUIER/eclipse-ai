@@ -36,7 +36,7 @@ export async function getConversationTitle(prompt) {
       messages: [
         {
           role: "user",
-          content: prompt
+          content: "Generate a title for this conversation: " + prompt
         }
       ]
     }, {

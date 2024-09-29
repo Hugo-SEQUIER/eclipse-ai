@@ -2,12 +2,11 @@ html, body {
     height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden; /* Prevents the body from scrolling */
 }
 
 .chat-container {
     background-color: transparent;
-    color: #444444;
+    color: #F9F6EE;
     width: 100%;
     height: 100vh; /* Ajustez cette valeur en fonction de la hauteur de votre en-tête et de la zone de connexion du portefeuille */
     display: flex;
@@ -16,11 +15,24 @@ html, body {
 }
 
 .chat-header {
-    background-color: #444444;
-    color: #F9F6EE;
+    display: flex;
+    align-items: center;
     padding: 10px;
-    text-align: center;
-    font-weight: bold;
+    background-color: #444444; /* Adjust as needed */
+    border-bottom: 1px solid #F9F6EE; /* Optional */
+    gap: 20px;
+    color: #F9F6EE;
+}
+
+.chat-header a {
+    color: #F9F6EE;
+    text-decoration: underline;
+}
+
+.header-logo {
+    width: 40px; /* Adjust the size as needed */
+    height: 40px; /* Adjust the size as needed */
+    margin-right: 10px; /* Space between logo and text */
 }
 
 .chat-body {
@@ -200,9 +212,16 @@ html, body {
     align-items: center;
     margin-top: 20px;
     padding-top: 10px;
-    border-top: 1px solid #ccc; /* Optional: Adds a separator line */
+    border-top: 1px solid #444444; /* Optional: Adds a separator line */
     flex-direction: column;
     gap: 10px;
+    color: #444444;
+}
+
+.powered-by > div:first-child{
+    align-items: center;
+    display: flex;
+    flex-direction: row;
 }
 
 .powered-by span {

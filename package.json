@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@irys/web-upload": "^0.0.7",
+    "@irys/web-upload-ethereum": "^0.0.7",
+    "@irys/web-upload-ethereum-ethers-v6": "^0.0.7",
+    "@irys/web-upload-solana": "^0.0.8",
     "@project-serum/anchor": "^0.26.0",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-react-ui": "^0.9.35",
@@ -14,9 +18,11 @@
     "axios": "^1.7.7",
     "browserify-fs": "^1.0.0",
     "crypto-js": "^4.2.0",
+    "ethers": "^6.13.2",
     "graphql-request": "^7.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2",
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
   },

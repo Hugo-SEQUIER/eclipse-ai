@@ -3,47 +3,11 @@ import { getResponse, getConversationTitle } from './aiChat/Chat.js'
 import './ChatBot.css';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { GraphQLClient, gql } from 'graphql-request';
-import CryptoJS from 'crypto-js'; // Import crypto-js for encryption/decryption
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-// Add these new functions for text embellishment
-const formatDays = (text) => {
-  return text.replace(/\*\*Day \d+:.*?\*\*/g, match => `\n\n## ${match}\n`);
-};
-
-const formatExercises = (text) => {
-  return text.replace(/(\d+\.\s*[\w\s-]+:)/g, match => `\n**${match}**\n`);
-};
-
-const formatExerciseDetails = (text) => {
-  return text.replace(/\*\s*([\w-]+):\s*(\d+(?:\s*sets?\s*of)?\s*\d+(?:\s*reps?)?)/g, 
-    (_, exercise, details) => `  - *${exercise}:* ${details}`);
-};
-
-const addLineBreaks = (text) => {
-  return text.replace(/(\d+\.\s*[\w\s-]+:.*?)(?=\d+\.|$)/gs, '$1\n');
-};
-
-// Add this new function for Markdown-to-HTML conversion
-const convertMarkdownToHtml = (text) => {
-  // Convert headers
-  text = text.replace(/^## (.*$)/gim, '<h4>$1</h4>');
-  text = text.replace(/^# (.*$)/gim, '<h3>$1</h3>');
-  
-  // Convert bold text
-  text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  
-  // Convert italic text
-  text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
-  
-  // Convert bullet points
-  text = text.replace(/^\* (.*$)/gim, '<li>$1</li>');
-  text = text.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-  
-  // Convert line breaks
-  text = text.replace(/\n/g, '<br>');
-  
-  return text;
-};
+import { uploadToIrys } from './aiChat/irys.js';
+import { Link } from 'react-router-dom';
+import { embellishText } from './aiChat/embellishtext.js';
+import { encryptText, decryptText } from './aiChat/encryption.js';
 
 const ChatBot = () => {
   const [conversations, setConversations] = useState({});
@@ -54,41 +18,12 @@ const ChatBot = () => {
   const [publicKeyString, setPublicKeyString] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
 
-  // Define your secret key for encryption/decryption
-  const SECRET_KEY = process.env.REACT_APP_SECRET_KEY;
-
   useEffect(() => {
     if (wallet.publicKey) {
       setPublicKeyString(wallet.publicKey.toString());
       fetchConversations(wallet.publicKey.toString());
     }
   }, [wallet.publicKey]);
-
-  // Encryption helper function
-  const encryptText = (text) => {
-    return CryptoJS.AES.encrypt(text, SECRET_KEY).toString();
-  };
-
-  // Decryption helper function
-  const decryptText = (cipherText) => {
-    try {
-      const bytes = CryptoJS.AES.decrypt(cipherText, SECRET_KEY);
-      return bytes.toString(CryptoJS.enc.Utf8);
-    } catch (error) {
-      console.error('Decryption failed:', error);
-      return 'Decryption Error';
-    }
-  };
-
-  const embellishText = (text) => {
-    let embellishedText = text;
-    embellishedText = formatDays(embellishedText);
-    embellishedText = formatExercises(embellishedText);
-    embellishedText = formatExerciseDetails(embellishedText);
-    embellishedText = addLineBreaks(embellishedText);
-    embellishedText = convertMarkdownToHtml(embellishedText);
-    return embellishedText;
-  };
 
   const fetchConversations = async (publicKey) => {
     const endpoint = 'https://uploader.irys.xyz/graphql';
@@ -108,8 +43,8 @@ const ChatBot = () => {
 
     try {
       const variables = {
-        owners: [process.env.REACT_APP_PUBLIC_KEY],
-        tags: [{ name: "address", values: [publicKey] }]
+        owners: [publicKey],
+        tags: [{ name: "address", values: ["DJi9qeHDT5vpu1iKApVvPxfBa7UYdSkuMPPsZ97zxvSc"] }]
       };
       const data = await graphQLClient.request(query, variables);
       const transactionIds = data.transactions.edges.map(edge => edge.node.id);
@@ -143,7 +78,6 @@ const ChatBot = () => {
         const response = await fetch(`https://gateway.irys.xyz/${id}`);
         if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
-        console.log(data);
 
         const conversationDate = new Date(data.date).toISOString();
 
@@ -168,7 +102,6 @@ const ChatBot = () => {
         // Sort messages by date (ascending)
         fetchedConversations[data.idConversation].messages.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        console.log(fetchedConversations[data.idConversation]);
       } catch (error) {
         console.error(`Error fetching data for transaction ${id}:`, error);
       }
@@ -336,7 +269,6 @@ const ChatBot = () => {
   const startNewConversation = () => {
     setActiveConversationId(null);
     setInput('');
-    // Removed modal opening as title is now auto-generated
   };
 
   const selectConversation = (id) => {
@@ -349,24 +281,12 @@ const ChatBot = () => {
 
   const uploadMetadata = async (metadata) => {
     try {
-      console.log('Sending metadata:', metadata);
-      const uploadResponse = await fetch('http://localhost:3001/upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          data: metadata, 
-          address: publicKeyString
-        }),
-      });
+      const result = await uploadToIrys(metadata, wallet);
 
-      if (uploadResponse.ok) {
-        const { url } = await uploadResponse.json();
-        console.log('Metadata stored at:', url);
+      if (result.url) {
+        console.log('Metadata stored at:', result.url);
       } else {
-        const errorData = await uploadResponse.json();
-        console.error('Failed to store metadata:', errorData);
+        console.error('Failed to store metadata:', result.error);
       }
     } catch (error) {
       console.error('Error storing metadata:', error);
@@ -375,7 +295,13 @@ const ChatBot = () => {
 
   return (
     <div className="chat-container">
-      <div className="chat-header">Meta-Llama-3-1-8B-Instruct-FP8 - Chatbot</div>
+       <div className="chat-header">
+          <a href="https://trophe.net/" target="_blank" rel="noopener noreferrer">
+            <img src="/logo_dark.png" alt="Logo" className="header-logo" />
+          </a>
+          Meta-Llama-3-1-8B-Instruct-FP8 - Chatbot
+          <Link to="/about" className="about-link">About</Link>
+        </div>
       <div className="chat-body">
         <div className="chat-history">
           <button onClick={startNewConversation} className="new-conversation-btn">New Conversation</button>

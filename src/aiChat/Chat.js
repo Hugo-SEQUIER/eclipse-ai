@@ -21,7 +21,6 @@ export async function getResponse(prompt) {
     });
 
     const formattedResponse = response.data.choices[0].message.content;
-    console.log(formattedResponse);
     return formattedResponse;
   } catch (error) {
     console.error(`Error: ${error.message}`);
@@ -47,7 +46,6 @@ export async function getConversationTitle(prompt) {
     });
 
     const title = response.data.choices[0].message.content.trim();
-    console.log("Generated Title:", title);
     return title;
   } catch (error) {
     console.error(`Error generating title: ${error.message}`);
